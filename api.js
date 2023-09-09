@@ -15,10 +15,12 @@ module.exports = function (app) {
       let project = req.params.project;
       const { issue_title, issue_text, created_by, assigned_to, status_text } =
         req.body;
-      if (!issue_title || !issue_text || !created_by || !assigned_to) {
+
+      if (!issue_title || !issue_text || !created_by) {
         res.json({ error: "required field(s) missing" });
         return;
       }
+
       const newIssue = new IssueModel({
         issue_title: issue_title || "",
         issue_text: issue_text || "",
@@ -28,6 +30,36 @@ module.exports = function (app) {
         assigned_to: assigned_to || "",
         open: true,
         status_text: status_text || "",
+      });
+
+      ProjectModel.findOne({ name: project }, (err, projectData) => {
+        if (err) {
+          res.send("Error finding project");
+          return;
+        }
+
+        if (!projectData) {
+          const newProject = new ProjectModel({
+            name: project,
+          });
+          newProject.issues.push(newIssue);
+          newProject.save((err, data) => {
+            if (err || !data) {
+              res.send("Error saving in post");
+            } else {
+              res.json(newIssue);
+            }
+          });
+        } else {
+          projectData.issues.push(newIssue);
+          projectData.save((err, data) => {
+            if (err || !data) {
+              res.send("Error saving in post");
+            } else {
+              res.json(newIssue);
+            }
+          });
+        }
       });
     })
 
